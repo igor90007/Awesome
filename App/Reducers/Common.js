@@ -60,8 +60,9 @@ const reducer = (state = initialState, action) => {
     case GET_COORDS_RESULT:
       return {
         ...state,
-        lastLat: Number(action[0].lat),
-        lastLng: Number(action[0].lat),
+        city: action.res.city,
+        lastLat: Number(action.res.lat),
+        lastLng: Number(action.res.lon),
       };
     default:
       return state;

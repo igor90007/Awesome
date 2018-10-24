@@ -8,17 +8,21 @@ import { WeatherWidget } from 'react-native-weather';
 import { HeaderBack } from '../Components/Header';
 import { getCoords } from '../Actions/Common';
 
+let inputText = '';
+
 class WeatherScreen extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
+      show: true,
       city: props.city,
       lastLat: props.lastLat,
       lastLng: props.lastLng,
     };
 
     this.reloadWeather = this.reloadWeather.bind(this);
+    this.getCity = this.getCity.bind(this);
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -33,6 +37,21 @@ class WeatherScreen extends React.Component {
       );
     }
 
+    if ((props.lastLat !== state.lastLat || props.lastLng !== state.lastLng) && props.city !== state.city) {
+      return {
+        show: true,
+        city: props.city,
+        lastLat: props.lastLat,
+        lastLng: props.lastLng,
+      };
+    }
+
+    if (!props.city) {
+      return {
+        city: 'City undefined',
+      };
+    }
+
     return null;
   }
 
@@ -41,30 +60,33 @@ class WeatherScreen extends React.Component {
   }
 
   attemptGeocodeAsync = async (address) => {
-    if (address.length > 2) {
+    if (address.length > 3) {
       this.props.dispatch(getCoords(address));
-    } else {
-      // too short city
     }
   };
 
   reloadWeather(text) {
-    this.setState({ city: false }, () => {
-      this.attemptGeocodeAsync(text);
-    });
+    inputText = text;
+
+    if (this.state.show) {
+      this.setState({ show: false });
+    }
   }
 
-  render() {
+  getCity() {
+    this.attemptGeocodeAsync(inputText);
+  }
+
+  render() {    
     return (
       <View style={{ flex: 1 }}>
         <HeaderBack backRoute="MAP" />
         <TextInput
           placeholder=" Type your city"
-          onChangeText={(text) => {
-            this.reloadWeather(text);
-          }}
+          onEndEditing={this.getCity}
+          onChangeText={this.reloadWeather}
         />
-        {this.state.city &&
+        {this.state.show &&
           <WeatherWidget
             api="abcae9a922160fa2c33690885b205ffa"
             lat={this.state.lastLat}

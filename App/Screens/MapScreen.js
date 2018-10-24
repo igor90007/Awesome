@@ -6,15 +6,15 @@ import { View, Alert, StatusBar } from 'react-native';
 import { connect } from 'react-redux';
 import MapView from 'react-native-maps';
 
-import { getAddressFinally, getAddress } from '../Actions/Common';
+import { getAddressFinally, getAddress, getCoords } from '../Actions/Common';
+import { latitude, longitude, delta } from '../Config/Settings';
 
 const adaptive = EStyleSheet.create({
-  $heightDevice: '$deviceHeight * 0.97',
   $darkBarStyle: '$barDarkStyle',
   $whiteColor: '$background',
-  $constDelta: '$deltaConst',
-  $constLatitude: '$latitudeConst',
-  $constLongitude: '$longitudeConst',
+  height: {
+    height: '$exceptStatusBarHeight',
+  },
 });
 
 class MapScreen extends React.Component {
@@ -23,14 +23,14 @@ class MapScreen extends React.Component {
     this.bootstrap();
 
     this.state = {
-      mapHeight: adaptive.$heightDevice,
       city: '',
-      lastLat: adaptive.$constLatitude,
-      lastLng: adaptive.$constLongitude,
+      lastLat: latitude,
+      lastLng: longitude,
     };
 
     this.attemptReverseGeocodeAsync = this.attemptReverseGeocodeAsync.bind(this);
     this.mapPress = this.mapPress.bind(this);
+    this.markerPress = this.markerPress.bind(this);
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -78,20 +78,29 @@ class MapScreen extends React.Component {
     });
   }
 
-  attemptReverseGeocodeAsync = async (latitude, longitude, nav = false) => {
-    const srub = nav ?
-      this.props.dispatch(getAddressFinally(latitude, longitude)) :
-      this.props.dispatch(getAddress(latitude, longitude));
+  attemptReverseGeocodeAsync = async (lat, lon, nav = false) => {
+    if (nav) {
+      this.props.dispatch(getAddressFinally(lat, lon));
+    } else {
+      this.props.dispatch(getAddress(lat, lon));
+    }
   }
 
-  mapPress(nativeEvent) {
-    this.setState({
-      lastLat: nativeEvent.coordinate.latitude,
-      lastLng: nativeEvent.coordinate.longitude,
-    });
+  mapPress = (e) => {
+    if (e.coords) {
+      this.setState({
+        lastLat: e.coords.latitude,
+        lastLng: e.coords.longitude,
+      });
+    } else {
+      this.setState({
+        lastLat: e.nativeEvent.coordinate.latitude,
+        lastLng: e.nativeEvent.coordinate.longitude,
+      });
+    }
   }
 
-  markerPress() {
+  markerPress = () => {
     this.attemptReverseGeocodeAsync(this.state.lastLat, this.state.lastLng, true);
   }
 
@@ -104,17 +113,17 @@ class MapScreen extends React.Component {
           barStyle={adaptive.$darkBarStyle}
         />
         <MapView
-          onLongPress={e => this.mapPress(e.nativeEvent)}
-          style={{ height: this.state.mapHeight }}
+          onLongPress={this.mapPress}
+          style={adaptive.height}
           region={{
-            latitudeDelta: adaptive.$constDelta,
-            longitudeDelta: adaptive.$constDelta,
-            latitude: adaptive.$constLatitude,
-            longitude: adaptive.$constLongitude,
+            latitudeDelta: delta,
+            longitudeDelta: delta,
+            latitude,
+            longitude,
           }}
         >
           <MapView.Marker
-            onPress={() => this.markerPress()}
+            onPress={this.markerPress}
             coordinate={{
               latitude: this.state.lastLat,
               longitude: this.state.lastLng,
